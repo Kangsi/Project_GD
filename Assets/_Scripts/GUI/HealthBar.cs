@@ -25,7 +25,6 @@ public class HealthBar : MonoBehaviour {
 
 	void Awake () 
     {
-        player = GameObject.FindGameObjectWithTag("Player").GetComponent<Player>();
         SetPosition();
 	}
 	
@@ -48,7 +47,7 @@ public class HealthBar : MonoBehaviour {
     }
     void CalculateHealth()
     {
-        healthPercentage = (float)player.healthPoints / (float)player.maxHealthPoints;
+        healthPercentage = (float)Player.Instance.healthPoints / (float)Player.Instance.maxHealthPoints;
         damageTaken = barWidth * healthPercentage;
         damageTaken = barWidth - damageTaken;
     }

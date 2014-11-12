@@ -27,17 +27,17 @@ public class Soulframe : MonoBehaviour {
 
     void Start()
     {
-        icon = player.GetComponent<Player>().activeSoul.soulIcon;
+        //icon = player.GetComponent<Player>().activeSoul.soulIcon;
     }
 
     void OnGUI()
     {
-        icon = player.GetComponent<Player>().activeSoul.soulIcon;
-        DrawSoulIcon();
+       // icon = player.GetComponent<Player>().activeSoul.soulIcon;
+        //DrawSoulIcon();
     }
 
     void DrawSoulIcon()
     {
-       GUI.DrawTexture(new Rect(position.x, position.y, icon.width, icon.height), icon);  
+      // GUI.DrawTexture(new Rect(position.x, position.y, icon.width, icon.height), icon);  
     }
 }

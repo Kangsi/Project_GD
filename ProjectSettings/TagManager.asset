@@ -5,7 +5,9 @@ TagManager:
   tags:
   - Enemy
   - Ground_Walkable
-  - EnemyBox
+  - PressurePlate
+  - Object_Useable
+  - User Interface
   - 
   Builtin Layer 0: Default
   Builtin Layer 1: TransparentFX

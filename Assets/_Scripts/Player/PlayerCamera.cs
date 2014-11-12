@@ -31,15 +31,15 @@ public class PlayerCamera : MonoBehaviour {
     public float zoomMax = 1f;
     public float distance = 0.5f;
 
-    private Vector3 startPosition;
+    public GameObject playerPrefab;
     private float offsetY;
     private float offsetZ;
 
     void Awake()
     {
-        startPosition = transform.position;
-        offsetY = transform.position.y;
-        offsetZ = transform.position.z;
+        //playerPrefab = GameObject.FindGameObjectWithTag("Player");
+        offsetY = transform.position.y - transform.parent.position.y;
+        offsetZ = transform.position.z - transform.parent.position.z;
     }
 
     void LateUpdate()
@@ -47,7 +47,7 @@ public class PlayerCamera : MonoBehaviour {
         if (target)
         {
             distance = Mathf.Clamp(distance - Input.GetAxis("Mouse ScrollWheel") * .5f, zoomMin, zoomMax);
-            Vector3 position = new Vector3(target.transform.position.x, target.transform.position.y+offsetY, target.transform.position.z+offsetZ);
+            Vector3 position = new Vector3(target.transform.position.x, target.transform.position.y + offsetY, target.transform.position.z + offsetZ );
             transform.position = Vector3.Lerp(target.position, position, distance);
             transform.LookAt(target);
         }

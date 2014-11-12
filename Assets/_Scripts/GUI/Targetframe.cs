@@ -28,21 +28,22 @@ public class Targetframe : MonoBehaviour {
     
 	void Awake()
     {
-        player = GameObject.FindGameObjectWithTag("Player").GetComponent<Player>();
         targetName = GetComponent<GUIText>();
         SetPosition();
     }
 
 	void OnGUI()
     {
-        if (player.target != null)
+        if (Player.Instance.target != null && Player.Instance.target.tag == "Enemy")
         {
-            target = player.target.GetComponent<Enemy_Stats>();
+            target = Player.Instance.target.GetComponent<Enemy_Stats>();
             targetName.text = target.name;
             CalculateHealth();
             DrawHealthBar();
             DrawDamageBar();
         }
+        else
+            targetName.text = "";
     }
 
     void SetPosition()

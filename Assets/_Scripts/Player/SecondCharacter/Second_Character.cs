@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using Manager;
 
 public class Second_Character : MonoBehaviour
 {
@@ -16,7 +17,7 @@ public class Second_Character : MonoBehaviour
     protected MOVETYPE State = MOVETYPE.followingPawn;
     #endregion
 
-    public Player player;
+    //public Player player;
     public Bullet bullet;
 
     protected bool followingPlayer, movingTowardsPoint, movingTowardsPlayer;
@@ -36,6 +37,8 @@ public class Second_Character : MonoBehaviour
     {
         followingPlayer = true;
         rotationDistance = rotationDistancePlayer;
+        EventManager.Instance.AddListener(this, "OnPetAttackOrder");
+        EventManager.Instance.AddListener(this, "OnPetFollowOrder");
 	}
 	
 	// Update is called once per frame
@@ -85,7 +88,7 @@ public class Second_Character : MonoBehaviour
 
     public void FollowPlayer()
     {
-        RotateAround(new Vector3(player.transform.position.x, player.transform.position.y + flyHeight, player.transform.position.z));
+        RotateAround(new Vector3(Player.Instance.transform.position.x, Player.Instance.transform.position.y + flyHeight, Player.Instance.transform.position.z));
     }
 
     public void RotateAround(Vector3 point)
@@ -128,5 +131,56 @@ public class Second_Character : MonoBehaviour
 
         Bullet b = bulletClone.gameObject.GetComponent("Bullet") as Bullet;
         b.SetVelocity(direction,bulletSpeed);
+    }
+
+    public GameObject MouseOverObject()
+    {
+        RaycastHit hit;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+        if (Physics.Raycast(ray, out hit, 1000))
+        {
+            return hit.collider.gameObject;
+        }
+        return null;
+    }
+
+    public Vector3 HitPoint()
+    {
+        RaycastHit hit;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+        if (Physics.Raycast(ray, out hit, 1000))
+        {
+            if (hit.collider.tag != "Player")
+            {
+                return hit.point;
+            }
+        }
+        return hit.point;
+    }
+
+
+    private void OnPetAttackOrder()
+    {
+        GameObject mouseOverObject = MouseOverObject();
+        if (mouseOverObject.tag == "Enemy")
+        {//If mouse over enemy
+            SetTarget(mouseOverObject);
+            State = MOVETYPE.attackingEnemy;
+        }
+        else if (mouseOverObject.tag == "Scenery")
+        {//If mouse of scenery
+
+        }
+        else
+        {//Move to position
+            Vector3 moveToPosition = HitPoint();
+            MoveTo(moveToPosition);
+        }
+    }
+    private void OnPetFollowOrder()
+    {
+        State = MOVETYPE.followingPawn;
     }
 }

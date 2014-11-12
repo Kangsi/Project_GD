@@ -37,40 +37,57 @@ using Manager;
  * Reference to this class is handled by calling the Instance of this class
  * Reference call: PlayerController.Instance.functionName();
  */
+[RequireComponent(typeof(Animator))]
+[RequireComponent(typeof(CapsuleCollider))]
+[RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour {
 
     ///////////////////////
-    // Instance
-    public static CharacterController Instance
+    // Public variables
+    //----------------------------------------
+    // Public Instance
+    public static PlayerController Instance
     {
         get
         {
             if (instance == null)
-                instance = GameObject.FindObjectOfType(typeof(CharacterController)) as CharacterController;
+                instance = GameObject.FindObjectOfType(typeof(PlayerController)) as PlayerController;
             return instance;
         }
     }
-
-    ///////////////////////
-    // References
-    #region
-    public Animator animator;    
-    private Rigidbody rigidBody;
-    private Player player;
-    private static CharacterController instance;
-    #endregion
-
-    ///////////////////////
-    // Variable Declaration
-    #region
+    //---------------------------------------
+    // Decleration
+    [System.NonSerialized]
+    public Quaternion lookRotation;
     public float rotationSpeed = 11f;
-    public float movementSpeed = 25f;
-
-    private int AttackChain;
-    private Vector3 destinationPoint;
-    #endregion
+    public bool jump; 
 
     ///////////////////////
+    // Private variables
+    //---------------------------------------
+    // Internal reference
+    private static PlayerController instance;
+    //---------------------------------------
+    // Component reference
+    private Animator animator;
+    private NavMeshAgent agent;
+    private AnimatorStateInfo upperBodyState;
+    private AnimatorStateInfo lowerBodyState;
+    //---------------------------------------
+    // Decleration  
+    static int idleState = Animator.StringToHash("LowerBody.Idle");
+    static int runState = Animator.StringToHash("LowerBody.Run");
+    static int attackState = Animator.StringToHash("LowerBody.Attack1");
+    static int heavySwingState = Animator.StringToHash("LowerBody.HeavySwing");
+    static int chargeState = Animator.StringToHash("LowerBody.Charge");
+    static int poundState = Animator.StringToHash("LowerBody.Pound");
+    private int AttackKey;    
+    private Vector3 destinationPoint;
+    private GameObject destinationTarget;
+
+    ///////////////////////
+    // States
+    //----------------------------------------
     // Animation
     #region
     private enum animState { idle = 0, moving = 1};
@@ -83,15 +100,14 @@ public class PlayerController : MonoBehaviour {
         {
             State = value;
             // Set animation state
-            animator.SetInteger("animState", (int)State);
+            animator.SetInteger("movementState", (int)State);
         }
     }
     #endregion
-
-    ///////////////////////
-    // States
+    //----------------------------------------
+    // Behaviour
     #region
-    private enum playerState { idle = 0, moveToPoint = 1, moveToObject = 2, engageEnemy = 3, moveToEnemy = 4 };
+    private enum playerState { idle = 0, move = 1, engageEnemy = 2, moveToObject = 3 };
     private playerState pState = playerState.idle;
     private playerState behaviorState
     {
@@ -105,77 +121,132 @@ public class PlayerController : MonoBehaviour {
 
     ///////////////////////
     // Unity
+    //----------------------------------------
     #region
     void Awake()
     {
         animator = GetComponentInChildren<Animator>();
-        player = GetComponent<Player>();
-        Physics.gravity = new Vector3(0, -10f, 0);
+        agent = GetComponent<NavMeshAgent>();
+        lookRotation = Quaternion.identity;
     }
-	void Update () {
-        HandleInput();
-        HandleMovement();
-	}    
-    void OnAnimatorMove()
+    void Start()
     {
-        rigidbody.velocity = new Vector3(transform.forward.x * ((movementSpeed) * Time.deltaTime * animator.GetFloat("Runspeed")),
-                                        rigidbody.velocity.y,
-                                        transform.forward.z * ((movementSpeed) * Time.deltaTime * animator.GetFloat("Runspeed")));
+        EventManager.Instance.AddListener(this, "OnMouseDown");
+        EventManager.Instance.AddListener(this, "OnAbilityUse");
+        EventManager.Instance.AddListener(this, "OnPlayAttackAnimation");
+        EventManager.Instance.AddListener(this, "OnPlayHeavySwingAnimation");
+        EventManager.Instance.AddListener(this, "OnPlayPoundAnimation");
+        EventManager.Instance.AddListener(this, "OnPlayJumpAnimation");
+        EventManager.Instance.AddListener(this, "OnPrimaryAttack");
+        EventManager.Instance.AddListener(this, "OnSecondaryAttack");
+        EventManager.Instance.AddListener(this, "OnActionbar1");
+        EventManager.Instance.AddListener(this, "OnActionbar2");
+        EventManager.Instance.AddListener(this, "OnActionbar3");
+        EventManager.Instance.AddListener(this, "OnActionbar4");
+        EventManager.Instance.AddListener(this, "OnPetAttackOrder");
+        EventManager.Instance.AddListener(this, "OnPetFollowOrder");
+        EventManager.Instance.AddListener(this, "OnDisplacePlayer");
+;    }
+	void Update () {
+        HandleMovement();
+        HandleRotation();
+	}      
+    void FixedUpdate()
+    {
+        upperBodyState = animator.GetCurrentAnimatorStateInfo(1);
+        lowerBodyState = animator.GetCurrentAnimatorStateInfo(2);
     }
     #endregion
-       
+
     ///////////////////////
-    // Methods
-    private void HandleInput()
+    // Public Funcions
+    //---------------------------------------
+    
+
+    ///////////////////////
+    // Private Funcions    
+    //---------------------------------------
+    // Behaviour function which processes the state set by the OnMouseDown function
+    private void HandleMovement()
     {
-        // Primary attack
-        if (Input.GetKeyUp(InputManager.ActionBarButtonPrimary))
+        switch(behaviorState)
         {
-            HandleMouseHit();
+            case (playerState.idle):
+                #region
+                agent.Stop();
+                animationState = animState.idle;
+                break;
+                #endregion
+            case (playerState.move):
+                #region
+                if (Vector3.Distance(destinationPoint, transform.position) > 0.1f)
+                {                    
+                    agent.stoppingDistance = 0.1f;
+                    agent.SetDestination(destinationPoint);
+                    animationState = animState.moving;
+                    // Apply Rotation
+                    lookRotation = Quaternion.LookRotation(agent.steeringTarget - transform.position);
+                }
+                else
+                {
+                    behaviorState = playerState.idle;
+                }
+                break;
+                #endregion
+            case (playerState.engageEnemy):
+                #region    
+                destinationPoint = destinationTarget.transform.position;
+                if (Vector3.Distance(destinationPoint, transform.position) > Player.Instance.attackRange)
+                {
+                    agent.stoppingDistance = Player.Instance.attackRange-0.2f;
+                    agent.SetDestination(destinationPoint);
+                    animationState = animState.moving;
+                    // Apply Rotation
+                    lookRotation = Quaternion.LookRotation(agent.steeringTarget - transform.position);
+                }
+                else
+                {
+                    behaviorState = playerState.idle;
+                    EventManager.Instance.PostEvent(this, "OnPrimaryAttack");
+                }
+                break;
+                #endregion
+            case (playerState.moveToObject):
+                #region
+                destinationPoint = destinationTarget.GetComponentInChildren<UseableObject>().transform.position;
+                if (Vector3.Distance(   new Vector3(destinationPoint.x, 0.0f, destinationPoint.z),
+                                        new Vector3(transform.position.x, 0.0f, transform.position.z)) > 0.1f)
+                {
+                    agent.stoppingDistance = 0.1f;
+                    agent.SetDestination(destinationPoint);
+                    animationState = animState.moving;
+                    // Apply Rotation
+                    lookRotation = Quaternion.LookRotation(agent.steeringTarget - transform.position);
+                }
+                else
+                {
+                    behaviorState = playerState.idle;
+                }
+                break;
+                #endregion
         }
-        // Secondary attack
-        if (Input.GetKeyUp(InputManager.ActionBarButtonSecondary))
-        {
-            player.activeSoul.attacks[1].useAbility();
-        }
-        // Ability 1
-        if (Input.GetKeyUp(InputManager.ActionBarButton1))
-        {
-            player.generalClass.ability[0].useAbility();
-        }
-        if (Input.GetKeyUp(InputManager.ActionBarButton2))
-        {
-            player.addExperience(400);
-        }
-
-        //SecondCharacterInput
-        #region
-        if (Input.GetKeyDown(KeyCode.Q))
-        {//2nd Char command MoveTo
-            GameObject mouseOverObject = MouseOverObject();
-            if (mouseOverObject.tag == "Enemy")
-            {//If mouse over enemy
-                player.secondCharacter.SetTarget(mouseOverObject);
-                player.secondCharacter.SecondCharacterState = Second_Character.MOVETYPE.attackingEnemy;
-            }
-            else if (mouseOverObject.tag == "Scenery")
-            {//If mouse of scenery
-
-            }
-            else
-            {//Move to position
-                Vector3 moveToPosition = HitPoint();
-                player.secondCharacter.MoveTo(moveToPosition);
-            }
-        }
-        if (Input.GetKeyDown(KeyCode.W))
-        {//2nd Char command 
-            player.secondCharacter.SecondCharacterState = Second_Character.MOVETYPE.followingPawn;
-        }
-        #endregion
     }
+    //---------------------------------------
+    // Function to handle the players rotaton
+    private void HandleRotation()
+    {
+        // Disable rotation on the xz axis
+        lookRotation.x = 0.0f;
+        lookRotation.z = 0.0f;
 
-    private void HandleMouseHit()
+        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * rotationSpeed);
+    }
+    
+    ///////////////////////
+    // Event Functions
+    //---------------------------------------
+    // Event function which respondes to the OnMouseDown event.
+    private void OnMouseDown()
     {
         RaycastHit hit;
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -187,127 +258,72 @@ public class PlayerController : MonoBehaviour {
                 switch (hit.collider.tag)
                 {
                     case "Ground_Walkable":
-                        behaviorState = playerState.moveToPoint;
+                        behaviorState = playerState.move;
                         break;
                     case "Enemy":
-                        player.target = hit.collider.gameObject;
-                        if (player.targetInRange())
-                        {
-                            behaviorState = playerState.engageEnemy;
-                            player.activeSoul.attacks[0].useAbility();
-                        }
-                        else
-                            behaviorState = playerState.moveToEnemy;
+                        behaviorState = playerState.engageEnemy;
+                        destinationTarget = hit.collider.gameObject;
                         break;
-                    case "Useable_Object":
-                        behaviorState = playerState.moveToObject; 
-                        player.target = hit.collider.gameObject;                                           
+                    case "Object_Useable":
+                        behaviorState = playerState.moveToObject;
+                        destinationTarget = hit.collider.gameObject;
                         break;
                 }
                 destinationPoint = hit.point;
+                lookRotation = Quaternion.LookRotation(hit.point - transform.position);
             }
         }
     }
-
-    public GameObject MouseOverObject()
+    //---------------------------------------
+    // Event function which responds to every ability used event
+    private void OnAbilityUse()
     {
-        RaycastHit hit;
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-        if (Physics.Raycast(ray, out hit, 1000))
-        {
-            return hit.collider.gameObject;
-        }
-        return null;
+        behaviorState = playerState.idle;
+    }
+    //---------------------------------------
+    // Event functions for playing animations
+    private void OnPlayAttackAnimation()
+    {
+        animator.SetTrigger("Attack");
+        if (AttackKey < 1) 
+            AttackKey++;
+        else 
+            AttackKey--;
+        animator.SetInteger("AttackKey", AttackKey);                
+    }
+    private void OnPlayHeavySwingAnimation()
+    {
+        animator.SetTrigger("HeavySwing");
+    }
+    private void OnPlayPoundAnimation()
+    {
+        animator.SetTrigger("Pound");
+    }
+    private void OnPlayChargeAnimation()
+    {
+        animator.SetTrigger("Charge");
+    }
+    private void OnPlayJumpAnimation()
+    {
+        animator.SetTrigger("Jump");
+    }
+    //---------------------------------------
+    // Event functions for processing input events
+    private void OnPrimaryAttack()
+    {
+        Spellbook.Instance.UseSpell("0");
+    }
+    private void OnSecondaryAttack()
+    {
+        Spellbook.Instance.UseSpell("1");
+    }
+    private void OnActionbar1()
+    {
+        Spellbook.Instance.UseSpell("2");
+    }
+    private void OnActionbar2()
+    {
+        Spellbook.Instance.UseSpell("3");
     }
 
-    public Vector3 HitPoint()
-    {
-        RaycastHit hit;
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-        if (Physics.Raycast(ray, out hit, 1000))
-        {
-            if (hit.collider.tag != "Player")
-            {
-                return hit.point;
-            }
-        }
-        return hit.point;
-    }
-
-    private void HandleMovement()
-    {
-        switch(behaviorState)
-        {
-            case (playerState.idle):
-                #region
-                animationState = animState.idle;
-                break;
-                #endregion
-
-            case (playerState.moveToPoint):
-                #region                
-                if (Vector3.Distance(new Vector3(destinationPoint.x, transform.position.y, destinationPoint.z), 
-                                     new Vector3(transform.position.x, transform.position.y, transform.position.z)) > 0.5f)
-                {
-                    // Apply Rotation
-                    Quaternion targetRotation = Quaternion.LookRotation(destinationPoint - transform.position);
-
-                    // Disable rotation on the xz axis
-                    targetRotation.x = 0.0f;
-                    targetRotation.z = 0.0f;
-
-                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
-
-                    // Apply Movement state
-                    animationState = animState.moving;
-                }
-                else 
-                    behaviorState = playerState.idle;
-                break;
-                #endregion
-           
-            case (playerState.moveToEnemy):
-                #region
-                // If the enemy is not in range we move towards him
-                if (!player.targetInRange())    
-                {
-                    // Apply Rotation
-                    Quaternion targetRotation = Quaternion.LookRotation(player.target.transform.position - transform.position);
-
-                    // Disable rotation on the xz axis
-                    targetRotation.x = 0.0f;
-                    targetRotation.z = 0.0f;
-
-                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
-
-                    // Apply Movement state
-                    animationState = animState.moving;
-                }
-                else
-                    behaviorState = playerState.idle;
-                break;
-                #endregion
-            case (playerState.engageEnemy):
-                #region         
-                if (player.targetInRange())
-                {
-                    // Apply Rotation
-                    Quaternion targetRotation = Quaternion.LookRotation(player.target.transform.position - transform.position);
-
-                    // Disable rotation on the xz axis
-                    targetRotation.x = 0.0f;
-                    targetRotation.z = 0.0f;
-
-                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
-
-                    // Set our animation to stop moving
-                    animationState = animState.idle;
-                }
-                break;
-                #endregion
-        }
-    }      
-    
 }

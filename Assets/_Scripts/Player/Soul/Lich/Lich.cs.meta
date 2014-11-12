@@ -1,9 +1,0 @@
-fileFormatVersion: 2
-guid: 043506dca1c930f4083654e41acdfe69
-MonoImporter:
-  serializedVersion: 2
-  defaultReferences:
-  - soulIcon: {fileID: 2800000, guid: 4d8ecbab487117f4bbe6d36bcf725733, type: 3}
-  executionOrder: 0
-  icon: {instanceID: 0}
-  userData: 

@@ -24,7 +24,6 @@ public abstract class EnemyBehaviour : MonoBehaviour
     {
         currentState = EnemyState.initializing;
         stats = GetComponent<Enemy_Stats>();
-        Debug.Log("stats name: " + stats.name);
         playerReference = GameObject.Find("Player");
         stats.player = playerReference.transform;
         //playerPawn = stats.player.GetComponent<Pawn>();

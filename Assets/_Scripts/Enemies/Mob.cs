@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using Manager;
 
 public class Mob : EnemyBehaviour {
 
@@ -8,13 +9,14 @@ public class Mob : EnemyBehaviour {
     protected Vector3 newPosition;
     protected float time;
     protected int patrolWalkTo;
+    public int experience;
+    public static int skeletonKills;
 
     void Start()
     {
         //stats.controller = GetComponent<CharacterController>();
         stats.healthPoints = stats.maxHealthPoints;
     }
-
 	public override void Update () {    
 		base.Update ();
 
@@ -60,7 +62,7 @@ public class Mob : EnemyBehaviour {
         ////////////////////////////////////////////////////
         ////////////////////////////////////////////////////
 
-		if (Player.Instance.target != null)                                                                          
+		if (Player.Instance.target = gameObject)                                                                          
             Player.Instance.target = null;
 		SetTime ();
 	}
@@ -68,7 +70,6 @@ public class Mob : EnemyBehaviour {
 	// Dead state: the object will be destroyed when the time is up. When the time is up a new object will spawn.
 	protected override void Dead ()
 	{
-        Debug.Log("Time: " + Time.time + "TimeDead: " + (time + stats.deadTime));
 		if (Time.time > time + stats.deadTime) 
         {
 			Destroy (gameObject);
@@ -81,7 +82,6 @@ public class Mob : EnemyBehaviour {
 		newPosition = new Vector3 (Random.Range (-stats.movingRadius, stats.movingRadius) + transform.parent.position.x, 
 		                           transform.parent.position.y, 
 		                           Random.Range (-stats.movingRadius, stats.movingRadius) + transform.parent.position.z);
-        Debug.Log(newPosition);
 
 	}
 
@@ -155,28 +155,36 @@ public class Mob : EnemyBehaviour {
     {
         Highlight skeleton = gameObject.GetComponentInChildren<Highlight>();
         skeleton.changeShader();
+        Player.Instance.target = gameObject;
     }
 
     void OnMouseExit()
     {
         Highlight skeleton = gameObject.GetComponentInChildren<Highlight>();
         skeleton.revertShader();
+        Player.Instance.target = null;
     }
     
-    void dealDamage(int dmg)
+    void dealDamage()
     {
-        if (inAttackRange())
-            Player.Instance.takeDamage(dmg);   
+            Player.Instance.takeDamage(20);
+            Debug.Log("Enemy deals damage to player");
+       
     }
 
     public void takeDamage(int damage)
     {
-        stats.healthPoints = (stats.healthPoints - damage);
-        animation.CrossFade(stats.anim[2].name);
+        if (currentState != EnemyState.dead)
+        {
+            stats.healthPoints = (stats.healthPoints - damage);
+            animation.CrossFade(stats.anim[2].name);
+        }
 
         if (stats.healthPoints <= 0 && currentState != EnemyState.dead) {
             stats.healthPoints = 0;
 			ChangeState (EnemyState.dead);
+            PlayerStatManager.addExperience(experience);
+            PlayerStatManager.addSkeletonKills(1);
         }
     }
 

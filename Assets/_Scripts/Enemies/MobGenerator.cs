@@ -10,7 +10,6 @@ public class MobGenerator : MonoBehaviour
 		Setup, 
 		SpawnMob
 	}
-	public GameObject[] mobPrefabs; // an array to hold all of the prefabs of mobs
 	public GameObject[] spawnPoints; // an array to hold all spawnpoints in the scene
 
 	public State state; // local variable thats holds our current state
@@ -42,8 +41,6 @@ public class MobGenerator : MonoBehaviour
 	// Initialize state: check if the arrays are not empty
 	private void Initialize()
 	{		 
-		if (!CheckForMobPrefabs ())
-						return;
 		if (!CheckForSpawnPoints ())
 						return;
 		state = MobGenerator.State.Setup;
@@ -72,15 +69,6 @@ public class MobGenerator : MonoBehaviour
 				}
 		state = MobGenerator.State.Initialize;
 
-	}
-
-	//check to see that we have at least 1 mobprefab to spawn
-	private bool CheckForMobPrefabs()
-	{
-		if (mobPrefabs.Length > 0)
-						return true;
-				else
-						return false;
 	}
 
 	// check to see that we have at least 1 spawnpoint

@@ -13,11 +13,13 @@ public class Enemy_Stats : MonoBehaviour
     public float attackRange;
 
     public int maxHealthPoints = 100;
+    public int damagePoints = 20;
     public int healthPoints;
     public int minIdleTime;
     public int maxIdleTime;
     public int deadTime;
     public int movingRadius;
+
 
     public Transform player;
 
