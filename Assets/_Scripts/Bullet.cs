@@ -27,7 +27,7 @@ public class Bullet : MonoBehaviour {
         if (col.gameObject.tag == targetTag && targetTag == "Enemy")
         {
             Mob mob = col.gameObject.GetComponent<Mob>();
-            mob.takeDamage(damage);
+            mob.takeDamage(damage, gameObject);
         }
         if (col.gameObject.tag != "Player")
         {

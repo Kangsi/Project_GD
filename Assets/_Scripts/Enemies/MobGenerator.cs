@@ -10,6 +10,7 @@ public class MobGenerator : MonoBehaviour
 		Setup, 
 		SpawnMob
 	}
+
 	public GameObject[] spawnPoints; // an array to hold all spawnpoints in the scene
 
 	public State state; // local variable thats holds our current state
@@ -47,7 +48,7 @@ public class MobGenerator : MonoBehaviour
 	}
 
 	private void Setup()
-	{ 
+	{   
 		state = MobGenerator.State.SpawnMob;
 	}
 
@@ -58,18 +59,28 @@ public class MobGenerator : MonoBehaviour
 		for (int cnt = 0; cnt < gos.Length; cnt++) {
 
             int randomMob = Random.Range(0, gos[cnt].GetComponent<SpawnPointEnemy>().gameObject.Length);
-            Vector3 randomPosition = new Vector3(Random.Range(-10,10), 0 ,Random.Range(-10,10));
+            Transform plane = gos[cnt].transform.Find("WalkablePlane");
+            Vector3 randomPosition = new Vector3(Random.Range(-5 * plane.localScale.x, 5 * plane.localScale.x),
+                                   0,
+                                  Random.Range(-5 * plane.localScale.z, 5 * plane.localScale.z));
+            //Vector3 randomPosition = new Vector3(Random.Range(-10,10), 0 ,Random.Range(-10,10));
             randomPosition += gos[cnt].transform.position;
 			GameObject go = Instantiate(gos[cnt].GetComponent<SpawnPointEnemy>().gameObject[randomMob], 
 			                            randomPosition, 
 			                            Quaternion.identity) as GameObject;
 			go.transform.parent = gos[cnt].transform;
-            //go.GetComponent<Enemy_Stats>().enabled = true;
+            string enemy_AI = gos[cnt].GetComponent<SpawnPointEnemy>().enemyAI;
+
+            AddComponentToEnemy(enemy_AI, go);
+            
 			go.GetComponent<Mob>().enabled = true;
+
 				}
 		state = MobGenerator.State.Initialize;
 
 	}
+
+
 
 	// check to see that we have at least 1 spawnpoint
 	private bool CheckForSpawnPoints()
@@ -87,12 +98,33 @@ public class MobGenerator : MonoBehaviour
 		for (int cnt = 0; cnt < spawnPoints.Length; cnt++) {
             if (spawnPoints[cnt] != null)
             {
-                if (spawnPoints[cnt].transform.childCount != spawnPoints[cnt].GetComponent<SpawnPointEnemy>().nMobs)
+                SpawnPointEnemy spawnPointStats = spawnPoints[cnt].GetComponent<SpawnPointEnemy>();
+                if (spawnPointStats.NSpawnEnemy == spawnPointStats.maxSpwawnEnemies + 1)
+                    Destroy(spawnPoints[cnt]);
+            
+                else if (spawnPoints[cnt].transform.childCount != spawnPoints[cnt].GetComponent<SpawnPointEnemy>().nMobs + 2)
                 {
                     gos.Add(spawnPoints[cnt]);
+                    spawnPointStats.NSpawnEnemy++;
                 }
             }
 				}
 		return gos.ToArray ();
 	}
+
+    private void AddComponentToEnemy(string component, GameObject got)
+    {
+        switch (component.ToUpper())
+        {
+            case "WALK": got.AddComponent<AI_Walk>();
+                break;
+            case "PATROL": got.AddComponent<AI_Patrol>(); 
+                break;
+            case "STANDGUARD": got.AddComponent<AI_StandGuard>(); 
+                break;
+            default: got.AddComponent<AI_StandGuard>();
+                Debug.Log("Unable to find the script file, AI set to stand guard.");
+                break;
+        }
+    }
 }
