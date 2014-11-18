@@ -183,7 +183,7 @@ public class Mob : EnemyBehaviour {
         if (stats.healthPoints <= 0 && currentState != EnemyState.dead) {
             stats.healthPoints = 0;
 			ChangeState (EnemyState.dead);
-            PlayerStatManager.addExperience(experience);
+            PlayerStatManager.Instance.addExperience(experience);
             PlayerStatManager.addSkeletonKills(1);
         }
     }

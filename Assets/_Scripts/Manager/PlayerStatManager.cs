@@ -5,11 +5,44 @@
 =============================================================================*/
 using UnityEngine;
 using System.Collections;
+using Manager;
 
 namespace Manager
 {
     public class PlayerStatManager : MonoBehaviour
     {
+        ///////////////////////
+        // Public variables
+        //----------------------------------------
+        // Public Instance
+        public static PlayerStatManager Instance
+        {
+            get
+            {
+                if (instance == null) instance = new PlayerStatManager();
+
+                return instance;
+            }
+        }
+
+        ///////////////////////
+        // Private variables
+        //---------------------------------------
+        // Internal reference
+        private static PlayerStatManager instance = null;  
+
+        void Awake()
+        {
+            //Check if an instance already exists 
+            if (instance)
+                DestroyImmediate(gameObject); //Delete duplicate
+            else
+            {
+                instance = this; //Make this object the only instance
+                DontDestroyOnLoad(gameObject); //Set as do not distroy
+            } 
+        }
+
         #region
         private static int level = 1;
         private static int experience;
@@ -30,7 +63,7 @@ namespace Manager
         public static void setDamagePoints(int value) { damagePoints = value; }
 
         public static void addLevel(int value) { level += value; }
-        public static void addExperience(int value) { processExp(value); }
+        public void addExperience(int value) { processExp(value); }
         public static void addStrength(int value) { strength += value; }
         public static void addStamina(int value) { stamina += value; }
         public static void addIntelligence(int value) { intelligence += value; }
@@ -56,12 +89,13 @@ namespace Manager
 
 
         //Methods
-        private static void processExp(int value)
+        private void processExp(int value)
         {
             if (getExperience()+value >= getRequiredExp())
             {
                 setExperience((getExperience() + value) - getRequiredExp());
                 addLevel(1);
+                EventManager.Instance.PostEvent(this, "OnLevelUp");
                 Debug.Log("Reached level "+getLevel());
             }
             else

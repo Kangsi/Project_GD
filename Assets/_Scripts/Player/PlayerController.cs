@@ -146,10 +146,13 @@ public class PlayerController : MonoBehaviour {
         EventManager.Instance.AddListener(this, "OnPetAttackOrder");
         EventManager.Instance.AddListener(this, "OnPetFollowOrder");
         EventManager.Instance.AddListener(this, "OnDisplacePlayer");
+        EventManager.Instance.AddListener(this, "OnLevelUp");
 ;    }
 	void Update () {
         HandleMovement();
         HandleRotation();
+        if (Input.GetKeyDown(KeyCode.Alpha9))
+            PlayerStatManager.Instance.addExperience(1000);
 	}      
     void FixedUpdate()
     {
@@ -207,7 +210,7 @@ public class PlayerController : MonoBehaviour {
                 else
                 {
                     behaviorState = playerState.idle;
-                    EventManager.Instance.PostEvent(this, "OnPrimaryAttack");
+                    StartCoroutine(attackSomething());
                 }
                 break;
                 #endregion
@@ -230,6 +233,12 @@ public class PlayerController : MonoBehaviour {
                 break;
                 #endregion
         }
+    }
+
+    private IEnumerator attackSomething()
+    {
+        yield return new WaitForSeconds(0.1f);
+        EventManager.Instance.PostEvent(this, "OnPrimaryAttack");
     }
     //---------------------------------------
     // Function to handle the players rotaton
@@ -289,7 +298,7 @@ public class PlayerController : MonoBehaviour {
             AttackKey++;
         else 
             AttackKey--;
-        animator.SetInteger("AttackKey", AttackKey);                
+        animator.SetInteger("AttackKey", AttackKey);
     }
     private void OnPlayHeavySwingAnimation()
     {
@@ -324,6 +333,11 @@ public class PlayerController : MonoBehaviour {
     private void OnActionbar2()
     {
         Spellbook.Instance.UseSpell("3");
+    }
+
+    private void OnLevelUp()
+    {
+        Debug.Log("Level up event recieved");
     }
 
 }
