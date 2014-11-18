@@ -99,7 +99,7 @@ public class MobGenerator : MonoBehaviour
             if (spawnPoints[cnt] != null)
             {
                 SpawnPointEnemy spawnPointStats = spawnPoints[cnt].GetComponent<SpawnPointEnemy>();
-                if (spawnPointStats.NSpawnEnemy == spawnPointStats.maxSpwawnEnemies + 1)
+                if (spawnPointStats.NSpawnEnemy == spawnPointStats.maxSpawnEnemies + 1)
                     Destroy(spawnPoints[cnt]);
             
                 else if (spawnPoints[cnt].transform.childCount != spawnPoints[cnt].GetComponent<SpawnPointEnemy>().nMobs + 2)

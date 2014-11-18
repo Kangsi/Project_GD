@@ -6,7 +6,7 @@ public class SpawnPointEnemy : MonoBehaviour
     public GameObject[] gameObject;
     public int nMobs;
     public string enemyAI;
-    public int maxSpwawnEnemies;
+    public int maxSpawnEnemies;
     protected int nSpawnEnemy;
 
     public int NSpawnEnemy
